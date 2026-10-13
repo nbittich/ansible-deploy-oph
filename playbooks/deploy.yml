@@ -1,0 +1,50 @@
+- name: Deploy docker project (first time)
+  hosts: app
+  become: True
+  vars:
+    destination_path: '{{ lookup("env", "DEPLOY_PATH") }}'
+    github_url: '{{ lookup("env", "GITHUB_URL") }}'
+    app_version: '{{ lookup("env", "APP_VERSION") }}'
+    email: '{{ lookup("env", "EMAIL_ADDRESS") }}'
+    certs_dir: "{{ destination_path }}/data/certs"
+  tasks:
+    - name: Clone the repository
+      git:
+        repo: "{{ github_url }}"
+        dest: "{{ destination_path }}"
+        version: "{{ app_version }}"
+    - name: Ensure nginx data directory exists
+      file:
+        path: "{{ destination_path }}/data/nginx"
+        state: directory
+        mode: '0755'
+    - name: Add nginx config to the compose project
+      copy:
+        src: "nginx.conf"
+        dest: "{{ destination_path }}/data/nginx/nginx.conf"
+    - name: Add docker compose override
+      copy:
+        src: "docker-compose.override.yml"
+        dest: "{{ destination_path }}/docker-compose.override.yml"
+    - name: Get the certificate
+      command:
+        cmd: >
+          certbot certonly --standalone --cert-name app -d {{ inventory_hostname }}
+          --email {{ email }} --agree-tos --non-interactive --config-dir {{ certs_dir }}
+        creates: "{{ certs_dir }}/live/app/fullchain.pem"
+
+    - name: Renew the certificate every monday
+      cron:
+        name: renew certificate
+        weekday: "1"
+        hour: "3"
+        minute: "0"
+        job: >-
+          certbot renew --quiet --config-dir {{ certs_dir }}
+          --pre-hook "cd {{ destination_path }} && docker compose stop nginx"
+          --post-hook "cd {{ destination_path }} && docker compose start nginx"
+
+    - name: Start the app
+      command:
+        cmd: docker compose up -d
+        chdir: "{{ destination_path }}"

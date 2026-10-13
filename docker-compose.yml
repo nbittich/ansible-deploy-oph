@@ -1,0 +1,14 @@
+services:
+  ansible:
+    image: alpine/ansible
+    environment:
+      - "ANSIBLE_HOST_KEY_CHECKING=False"
+      - "GITHUB_URL=https://github.com/lblod/app-openproceshuis.git"
+      - "APP_VERSION=v2.8.2" 
+      - "DEPLOY_PATH=/data/app-open-proceshuis-dev"
+      - "EMAIL_ADDRESS=nordine@bittich.be"
+    volumes:
+      - ./ssh_keys:/root/.ssh
+      - ./playbooks:/playbooks
+      - ./inventory.ini:/apps/inventory.ini
+    entrypoint: ["tail", "-f", "/dev/null"]

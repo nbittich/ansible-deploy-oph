@@ -1,0 +1,19 @@
+- import_playbook: ../release.yml
+  vars:
+    release: v2.8.3
+
+- name: Release 2.8.3 specific steps
+  hosts: app
+  become: True
+  vars:
+    destination_path: '{{ lookup("env", "DEPLOY_PATH") }}'
+  tasks:
+    - name: Run the migrations
+      command:
+        cmd: docker compose restart migrations
+        chdir: "{{ destination_path }}"
+
+    - name: Restart resource and cache
+      command:
+        cmd: docker compose restart resource cache
+        chdir: "{{ destination_path }}"

@@ -1,0 +1,19 @@
+# ./deploy.sh logs -e service=virtuoso -e tail=200
+- name: Logs of a service
+  hosts: app
+  become: True
+  vars:
+    destination_path: '{{ lookup("env", "DEPLOY_PATH") }}'
+    service: virtuoso
+    tail: 100
+  tasks:
+    - name: docker compose logs
+      command:
+        cmd: docker compose logs --no-color --tail {{ tail }} {{ service }}
+        chdir: "{{ destination_path }}"
+      register: logs
+      changed_when: false
+
+    - name: Output
+      debug:
+        msg: "{{ logs.stdout_lines }}"

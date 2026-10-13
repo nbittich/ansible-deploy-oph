@@ -1,0 +1,23 @@
+- name: Deploy a release
+  hosts: app
+  become: True
+  vars:
+    destination_path: '{{ lookup("env", "DEPLOY_PATH") }}'
+    github_url: '{{ lookup("env", "GITHUB_URL") }}'
+  tasks:
+    - name: Checkout the tag
+      git:
+        repo: "{{ github_url }}"
+        dest: "{{ destination_path }}"
+        version: "{{ release }}"
+        force: yes
+
+    - name: Pull the images
+      command:
+        cmd: docker compose pull
+        chdir: "{{ destination_path }}"
+
+    - name: Recreate the services that changed
+      command:
+        cmd: docker compose up -d
+        chdir: "{{ destination_path }}"

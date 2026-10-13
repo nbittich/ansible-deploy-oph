@@ -1,0 +1,11 @@
+- name: Restart a service
+  hosts: app
+  become: True
+  vars:
+    service: ""
+    destination_path: '{{ lookup("env", "DEPLOY_PATH") }}'
+  tasks:
+   -  name: Restart service {{ service }}
+      command:
+         cmd: docker compose restart {{ service }}
+         chdir: "{{ destination_path }}"
